@@ -8,7 +8,7 @@ import secrets
 from app import *
 
 class TestManage(unittest.TestCase):
-    MODELS = [Group, User, UserToGroup, Device, Publication, Subscription, Message]
+    MODELS = [Config, Group, User, UserToGroup, Device, Publication, Subscription, Message]
 
     def setUp(self):
         self.db = SqliteDatabase('peewee.db')
@@ -22,6 +22,9 @@ class TestManage(unittest.TestCase):
             model.delete().execute()
 
         self.db.create_tables(self.MODELS, safe=True)
+
+        # Config
+        release = Config.create(app_api_key=secrets.APP_API_KEY, messaging_api_key=secrets.MESSAGING_API_KEY)
 
         # Groups
         admin = Group.create(name='admin')

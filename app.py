@@ -244,6 +244,14 @@ class BaseSchema(Schema):
 
     uri = fields.Str(dump_only=True)
 
+class Config(BaseModel):
+    app_api_key = CharField()
+    messaging_api_key = CharField()
+
+class ConfigSchema(BaseSchema):
+    app_api_key = fields.Str(required=True)
+    messaging_api_key = fields.Str(required=True)
+
 class Group(BaseModel):
     name = CharField()
     description = CharField(default='')
@@ -389,6 +397,8 @@ class MessageSchema(BaseSchema):
     body = fields.Str(required=True)
 
 def prepare_routes(base_url='/api/v1.0/'):
+    View.add(app, base_url=[base_url + 'configs'], endpoint='configs', model_cls=Config, schema_cls=ConfigSchema)
+
     View.add(app, base_url=[base_url + 'groups'], endpoint='groups', model_cls=Group, schema_cls=GroupSchema)
 
     View.add(app, base_url=[base_url + 'users'], endpoint='users', model_cls=User, schema_cls=UserSchema)
