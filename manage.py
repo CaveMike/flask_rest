@@ -18,10 +18,10 @@ class TestManage(unittest.TestCase):
         self.db.close()
 
     def testReCreate(self):
+        self.db.create_tables(self.MODELS, safe=True)
+
         for model in self.MODELS:
             model.delete().execute()
-
-        self.db.create_tables(self.MODELS, safe=True)
 
         # Config
         release = Config.create(app_api_key=secrets.APP_API_KEY, messaging_api_key=secrets.MESSAGING_API_KEY)
