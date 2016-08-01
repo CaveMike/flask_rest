@@ -24,22 +24,22 @@ class TestBase(unittest.TestCase):
         release = Config.create(app_api_key=secrets.APP_API_KEY, messaging_api_key=secrets.MESSAGING_API_KEY)
 
         # Groups
-        admin = Group.create(name='admin')
+        admin = Group.create(name=secrets.TEST_USER)
         user = Group.create(name='user')
         guest = Group.create(name='guest')
 
         # Users
-        admin = User.create_user(name='Administrator', description='Administrator', email='admin@localhost.com', username='admin', password='1234')
+        admin = User.create_user(name='Administrator', description='Administrator', email='admin@localhost.com', username=secrets.TEST_USER, password=secrets.TEST_PASSWORD)
         Device.create(user=admin, name='d2', resource='work', type='computer', dev_id='a')
 
-        chloe = User.create_user(name='Chloe', username='chloe', password='1234')
+        chloe = User.create_user(name='Chloe', username='chloe', password=secrets.TEST_PASSWORD)
         d = chloe.create_device(name='d2', resource='work', type='computer', dev_id='a')
         chloe.create_device(name='d0', resource='home', type='phone', dev_id='b')
         chloe.create_device(name='d3', resource='home', type='laptop', dev_id='c')
         chloe.create_device(name='d1', resource='work', type='phone', dev_id='d')
         UserToGroup.create(user=chloe, group=guest)
 
-        sunshine = User.create_user(name='Sunshine', username='sunshine', password='1234')
+        sunshine = User.create_user(name='Sunshine', username='sunshine', password=secrets.TEST_PASSWORD)
         sunshine.create_device(name='d5', resource='work', type='phone', dev_id='e')
         UserToGroup.create(user=sunshine, group=user)
         UserToGroup.create(user=sunshine, group=guest)
@@ -48,11 +48,11 @@ class TestBase(unittest.TestCase):
         Message.create(user=sunshine, to_publication=p, subject='Eating breakfast')
         Message.create(user=sunshine, to_publication=p, subject='Time for a nap')
 
-        guinness = User.create_user(name='Guinness', username='guinness', password='1234')
+        guinness = User.create_user(name='Guinness', username='guinness', password=secrets.TEST_PASSWORD)
         guinness.create_device(name='d7', resource='work', type='phone', dev_id='g')
         UserToGroup.create(user=guinness, group=guest)
 
-        felix = User.create_user(name='Felix', username='felix', password='1234')
+        felix = User.create_user(name='Felix', username='felix', password=secrets.TEST_PASSWORD)
         felix.create_device(name='d6', resource='work', type='phone', dev_id='f')
         UserToGroup.create(user=felix, group=guest)
         Subscription.create(user=felix, publication=p)
@@ -61,7 +61,7 @@ class TestBase(unittest.TestCase):
         Message.create(user=felix, to_device=d, subject='hi chloe')
         Message.create(user=felix, to_user=chloe, subject='hi chloe again')
 
-        ducky = User.create_user(name='Ducky', username='ducky', password='1234')
+        ducky = User.create_user(name='Ducky', username='ducky', password=secrets.TEST_PASSWORD)
         ducky.create_device(name='d8', resource='work', type='phone', dev_id='h')
         UserToGroup.create(user=ducky, group=admin)
         UserToGroup.create(user=ducky, group=user)
@@ -90,7 +90,7 @@ class TestBase(unittest.TestCase):
 
 class TestUser(TestBase):
     def test_get_all(self):
-        response = self.request('GET', '/api/v1.0/users/', auth=('admin', '1234'))
+        response = self.request('GET', '/api/v1.0/users/', auth=secrets.TEST_CREDENTIALS)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.content_length)
@@ -99,7 +99,7 @@ class TestUser(TestBase):
         self.assertEqual(len(j), 6)
 
     def test_get_one(self):
-        response = self.request('GET', '/api/v1.0/users/3', auth=('admin', '1234'))
+        response = self.request('GET', '/api/v1.0/users/3', auth=secrets.TEST_CREDENTIALS)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.content_length)
@@ -116,7 +116,7 @@ class TestUser(TestBase):
             'password' : 'stout',
         }
 
-        response = self.request('POST', '/api/v1.0/users/', auth=('admin', '1234'), json_data=json_data)
+        response = self.request('POST', '/api/v1.0/users/', auth=secrets.TEST_CREDENTIALS, json_data=json_data)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.content_length)
@@ -135,7 +135,7 @@ class TestUser(TestBase):
         }
         ]
 
-        response = self.request('POST', '/api/v1.0/users/', auth=('admin', '1234'), json_data=json_data)
+        response = self.request('POST', '/api/v1.0/users/', auth=secrets.TEST_CREDENTIALS, json_data=json_data)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.content_length)
@@ -154,7 +154,7 @@ class TestUser(TestBase):
             'password' : 'rhino',
         }
 
-        response = self.request('PUT', '/api/v1.0/users/3', auth=('admin', '1234'), json_data=json_data)
+        response = self.request('PUT', '/api/v1.0/users/3', auth=secrets.TEST_CREDENTIALS, json_data=json_data)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.content_length)
@@ -168,7 +168,7 @@ class TestUser(TestBase):
             'password' : 'horn',
         }
 
-        response = self.request('PATCH', '/api/v1.0/users/3', auth=('admin', '1234'), json_data=json_data)
+        response = self.request('PATCH', '/api/v1.0/users/3', auth=secrets.TEST_CREDENTIALS, json_data=json_data)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.content_length)
@@ -177,7 +177,7 @@ class TestUser(TestBase):
         self.assertEqual(j['uri'], 'http://localhost/api/v1.0/users/3')
 
     def test_delete_all(self):
-        response = self.request('DELETE', '/api/v1.0/users/', auth=('admin', '1234'))
+        response = self.request('DELETE', '/api/v1.0/users/', auth=secrets.TEST_CREDENTIALS)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.content_length)
@@ -187,7 +187,7 @@ class TestUser(TestBase):
         self.assertEqual(j[0]['uri'], 'http://localhost/api/v1.0/users/1')
 
     def test_delete_one(self):
-        response = self.request('DELETE', '/api/v1.0/users/3', auth=('admin', '1234'))
+        response = self.request('DELETE', '/api/v1.0/users/3', auth=secrets.TEST_CREDENTIALS)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.content_length)
@@ -198,7 +198,7 @@ class TestUser(TestBase):
 
 class TestDevice(TestBase):
     def test_get_all(self):
-        response = self.request('GET', '/api/v1.0/users/2/devices/', auth=('admin', '1234'))
+        response = self.request('GET', '/api/v1.0/users/2/devices/', auth=secrets.TEST_CREDENTIALS)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.content_length)
@@ -207,7 +207,7 @@ class TestDevice(TestBase):
         self.assertEqual(len(j), 4)
 
     def test_get_one(self):
-        response = self.request('GET', '/api/v1.0/users/2/devices/4', auth=('admin', '1234'))
+        response = self.request('GET', '/api/v1.0/users/2/devices/4', auth=secrets.TEST_CREDENTIALS)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.content_length)
@@ -217,7 +217,7 @@ class TestDevice(TestBase):
 
 class TestGroup(TestBase):
     def test_get_all(self):
-        response = self.request('GET', '/api/v1.0/groups/', auth=('admin', '1234'))
+        response = self.request('GET', '/api/v1.0/groups/', auth=secrets.TEST_CREDENTIALS)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.content_length)
@@ -226,13 +226,13 @@ class TestGroup(TestBase):
         self.assertEqual(len(j), 3)
 
     def test_get_one(self):
-        response = self.request('GET', '/api/v1.0/groups/1', auth=('admin', '1234'))
+        response = self.request('GET', '/api/v1.0/groups/1', auth=secrets.TEST_CREDENTIALS)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'application/json')
         self.assertTrue(response.content_length)
 
         j = json.loads(response.data.decode('utf-8'))
-        self.assertEqual(j['name'], 'admin')
+        self.assertEqual(j['name'], secrets.TEST_USER)
         self.assertEqual(j['uri'], 'http://localhost/api/v1.0/groups/1')
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
-AUTH_USER="admin"
-AUTH_PASS="1234"
+AUTH_USER=$(grep "TEST_USER=" secrets.py | cut -f2 -d"'")
+AUTH_PASS=$(grep "TEST_PASSWORD=" secrets.py | cut -f2 -d"'")
 AUTH_PARAM="--auth ${AUTH_USER}:${AUTH_PASS} --auth-type basic"
 #REDIRECT="--follow"
 #PRINT="--print hbHB"
