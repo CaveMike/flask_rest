@@ -4,11 +4,22 @@ import logging
 import os
 import unittest
 
-import secrets
-from app import *
+from peewee import SqliteDatabase
+
+import model
 
 class TestManage(unittest.TestCase):
-    MODELS = [Config, Group, User, UserToGroup, Device, Publication, Subscription, Message]
+    MODELS = \
+    [
+        model.Config,
+        model.Group,
+        model.User,
+        model.UserToGroup,
+        model.Device,
+        model.Publication,
+        model.Subscription,
+        model.Message,
+    ]
 
     def setUp(self):
         self.db = SqliteDatabase('peewee.db')

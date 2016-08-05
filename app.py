@@ -1,9 +1,5 @@
 #!venv/bin/python
-import datetime
 import logging
-import uuid
-
-import secrets
 
 import werkzeug.routing
 
@@ -19,23 +15,14 @@ from flask.views import MethodView
 
 from flask_httpauth import HTTPBasicAuth
 
-from seq_tools import is_sequence_or_set
-from seq_tools import to_sequence_or_set
-
-from marshmallow import fields
-from marshmallow import pprint
-#from marshmallow import pre_load
-#from marshmallow import post_load
-#from marshmallow import pre_dump
-#from marshmallow import post_dump
-from marshmallow import validate
-from marshmallow import Schema
-
 from pbkdf2 import crypt
 
-from peewee import *
-
 from playhouse.flask_utils import FlaskDB
+
+import model
+
+from seq_tools import is_sequence_or_set
+from seq_tools import to_sequence_or_set
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s.%(msecs)d %(levelname)s %(threadName)s(%(thread)d) %(module)s.%(funcName)s#%(lineno)d %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
 
@@ -48,7 +35,7 @@ auth = HTTPBasicAuth()
 @auth.verify_password
 def verify_password(username, alleged_password):
     try:
-        user = User.select().where(User.username == username).get()
+        user = model.User.select().where(model.User.username == username).get()
         verification = (crypt(alleged_password, user.password) == user.password)
         logging.debug('verify_password: username={}, encrypted_password={}, alleged_password={}, verification={}'.format(username, user.password, alleged_password, verification))
         return verification
@@ -208,212 +195,24 @@ class View(MethodView):
                 logging.debug('methods={}, url={}'.format(methods, url))
                 app.add_url_rule(url, methods=methods, defaults={}, view_func=view_func)
 
-class BaseModel(database.Model):
-    created = DateTimeField(default=datetime.datetime.now)
-    modified = DateTimeField(default=datetime.datetime.now)
-    revision = IntegerField(default=0)
-
-    @property
-    def endpoint(self):
-        return self.__class__.__name__.lower() + 's'
-
-    @property
-    def parent_id(self):
-        return None
-
-    @property
-    def uri(self):
-        return url_for(endpoint=self.endpoint, id=self.id, parent=self.parent_id, _external=True)
-
-    def save(self, *args, **kwargs):
-        self.modified = datetime.datetime.now()
-        self.revision += 1
-        super(BaseModel, self).save(*args, **kwargs)
-
-    def __str__(self):
-        return 'id={}, uri={}, created={}, modified={}, revision={}'.format(self.id, self.uri, self.created, self.modified, self.revision)
-
-class BaseSchema(Schema):
-    class Meta:
-        ordered = True
-
-    id = fields.Int(dump_only=True)
-    created = fields.DateTime(dump_only=True)
-    modified = fields.DateTime(dump_only=True)
-    revision = fields.Int(dump_only=True)
-
-    uri = fields.Str(dump_only=True)
-
-class Config(BaseModel):
-    app_api_key = CharField()
-    messaging_api_key = CharField()
-
-class ConfigSchema(BaseSchema):
-    app_api_key = fields.Str(required=True)
-    messaging_api_key = fields.Str(required=True)
-
-class Group(BaseModel):
-    name = CharField()
-    description = CharField(default='')
-
-    def __str__(self):
-        return 'name={}'.format(self.name)
-
-class GroupSchema(BaseSchema):
-    name = fields.Str(required=True)
-    description = fields.Str(required=True)
-
-class User(BaseModel):
-    name = CharField()
-    description = CharField(default='')
-    email = CharField(default='')
-    username = CharField(default='')
-    password = CharField(default='')
-
-    @classmethod
-    def crypt_password(cls, username, password):
-        encrypted_password = crypt(password)
-        logging.debug('password={}, encrypted_password={}'.format(password, encrypted_password))
-        return encrypted_password
-
-    @classmethod
-    def create_user(cls, username, password, **kwargs):
-        encrypted_password = User.crypt_password(username, password)
-        logging.debug('get_password: username={}, password={}, encrypted_password={}'.format(username, password, encrypted_password))
-        return User.create(username=username, password=encrypted_password, **kwargs)
-
-    def create_device(self, **kwargs):
-        return Device.create(user=self, **kwargs)
-
-    def __str__(self):
-        return 'name={}, description={}, email={}, username={}, password={}'.format(self.name, self.description, self.email, self.username, self.password)
-
-class UserSchema(BaseSchema):
-    name = fields.Str(required=True)
-    description = fields.Str(required=True)
-    email = fields.Str(required=True)
-    username = fields.Str(required=True)
-    password = fields.Str(required=True)
-
-class UserToGroup(BaseModel):
-    """A simple "through" table for many-to-many relationship."""
-
-    class Meta:
-        primary_key = CompositeKey('user', 'group')
-
-    user = ForeignKeyField(User)
-    group = ForeignKeyField(Group)
-
-    def __str__(self):
-        return 'user={}, group={}'.format(self.user.name, self.group.name)
-
-class Device(BaseModel):
-    name = CharField()
-    dev_id = CharField(default='')
-    reg_id = CharField(default='')
-    resource = CharField(default='')
-    type = CharField(default='')
-
-    user = ForeignKeyField(User, related_name='devices')
-
-    @property
-    def parent_id(self):
-        return self.user.id
-
-    def __str__(self):
-        return 'name={}, dev_id={}, reg_id={}, resource={}, type={}, user={}'.format(self.name, self.dev_id, self.reg_id, self.resource, self.type, self.user.name)
-
-class DeviceSchema(BaseSchema):
-    name = fields.Str(required=True)
-    dev_id = fields.Str(required=True)
-    reg_id = fields.Str(required=True)
-    resource = fields.Str(required=True)
-    type = fields.Str(required=True)
-
-class Publication(BaseModel):
-    topic = CharField()
-    description = CharField(default='')
-
-    user = ForeignKeyField(User, related_name='publications')
-    group = ForeignKeyField(Group, related_name='publications')
-
-    @property
-    def parent_id(self):
-        return self.user.id
-
-    def __str__(self):
-        return 'topic={}, description={}, user={}'.format(self.topic, self.description, self.user.name)
-
-class PublicationSchema(BaseSchema):
-    topic = fields.Str(required=True)
-    description = fields.Str(required=True)
-
-class Subscription(BaseModel):
-    user = ForeignKeyField(User, related_name='subscriptions')
-    publication = ForeignKeyField(Publication, related_name='subscriptions')
-
-    @property
-    def parent_id(self):
-        return self.user.id
-
-    def __str__(self):
-        return 'user={}, pub={}'.format(self.user.name, self.publication.topic)
-
-class SubscriptionSchema(BaseSchema):
-    pass
-
-class Message(BaseModel):
-    class Meta:
-        order_by = ('-modified', )
-
-    user = ForeignKeyField(User, related_name='tx_messages')
-
-    to_user = ForeignKeyField(User, related_name='rx_messages', null=True)
-    to_device = ForeignKeyField(Device, related_name='rx_messages', null=True)
-    to_publication = ForeignKeyField(Publication, related_name='rx_messages', null=True)
-    subject = CharField()
-    body = CharField(default='')
-
-    @property
-    def parent_id(self):
-        return self.user.id
-
-    def __str__(self):
-        a = ['subject={}, body={}, from_user={}'.format(self.subject, self.body, self.user.name)]
-
-        if self.to_user:
-            a.append('to_user={}'.format(self.to_user.name))
-
-        if self.to_device:
-            a.append('to_device={}'.format(self.to_device.name))
-
-        if self.to_publication:
-            a.append('to_publication={}'.format(self.to_publication.topic))
-
-        return ', '.join(a)
-
-class MessageSchema(BaseSchema):
-    subject = fields.Str(required=True)
-    body = fields.Str(required=True)
-
 def prepare_routes(base_url='/api/v1.0/'):
-    View.add(app, base_url=[base_url + 'configs'], endpoint='configs', model_cls=Config, schema_cls=ConfigSchema)
+    View.add(app, base_url=[base_url + 'configs'], endpoint='configs', model_cls=model.Config, schema_cls=model.ConfigSchema)
 
-    View.add(app, base_url=[base_url + 'groups'], endpoint='groups', model_cls=Group, schema_cls=GroupSchema)
+    View.add(app, base_url=[base_url + 'groups'], endpoint='groups', model_cls=model.Group, schema_cls=model.GroupSchema)
 
-    View.add(app, base_url=[base_url + 'users'], endpoint='users', model_cls=User, schema_cls=UserSchema)
+    View.add(app, base_url=[base_url + 'users'], endpoint='users', model_cls=model.User, schema_cls=model.UserSchema)
 
-    View.add(app, base_url=[base_url + 'users/<string:parent>/devices', base_url + 'devices'], endpoint='devices', model_cls=Device, schema_cls=DeviceSchema, parent_cls=User)
-    View.add(app, base_url=base_url + 'users/<string:user_id>/devices/<string:parent>/messages', endpoint='devices.messages', model_cls=Message, schema_cls=MessageSchema, parent_cls=Device)
+    View.add(app, base_url=[base_url + 'users/<string:parent>/devices', base_url + 'devices'], endpoint='devices', model_cls=model.Device, schema_cls=model.DeviceSchema, parent_cls=model.User)
+    View.add(app, base_url=base_url + 'users/<string:user_id>/devices/<string:parent>/messages', endpoint='devices.messages', model_cls=model.Message, schema_cls=model.MessageSchema, parent_cls=model.Device)
 
-    View.add(app, base_url=[base_url + 'users/<string:parent>/publications', base_url + 'publications'], endpoint='publications', model_cls=Publication, schema_cls=PublicationSchema, parent_cls=User)
-    View.add(app, base_url=base_url + 'users/<string:user_id>/publications/<string:parent>/subscriptions', endpoint='publication.subscriptions', model_cls=Subscription, schema_cls=SubscriptionSchema, parent_cls=Publication)
-    View.add(app, base_url=base_url + 'users/<string:user_id>/publications/<string:parent>/messages', endpoint='publication.messages', model_cls=Message, schema_cls=MessageSchema, parent_cls=Publication)
+    View.add(app, base_url=[base_url + 'users/<string:parent>/publications', base_url + 'publications'], endpoint='publications', model_cls=model.Publication, schema_cls=model.PublicationSchema, parent_cls=model.User)
+    View.add(app, base_url=base_url + 'users/<string:user_id>/publications/<string:parent>/subscriptions', endpoint='publication.subscriptions', model_cls=model.Subscription, schema_cls=model.SubscriptionSchema, parent_cls=model.Publication)
+    View.add(app, base_url=base_url + 'users/<string:user_id>/publications/<string:parent>/messages', endpoint='publication.messages', model_cls=model.Message, schema_cls=model.MessageSchema, parent_cls=model.Publication)
 
-    View.add(app, base_url=[base_url + 'users/<string:parent>/susbscriptions', base_url + 'subscriptions'], endpoint='subscriptions', model_cls=Subscription, schema_cls=SubscriptionSchema, parent_cls=User)
-    #View.add(app, base_url=base_url + 'users/<string:user_id>/susbscriptions/<string:parent>/messages', endpoint='subscription.messages', model_cls=Message, schema_cls=MessageSchema, parent_cls=Subscription)
+    View.add(app, base_url=[base_url + 'users/<string:parent>/susbscriptions', base_url + 'subscriptions'], endpoint='subscriptions', model_cls=model.Subscription, schema_cls=model.SubscriptionSchema, parent_cls=model.User)
+    #View.add(app, base_url=base_url + 'users/<string:user_id>/susbscriptions/<string:parent>/messages', endpoint='subscription.messages', model_cls=model.Message, schema_cls=model.MessageSchema, parent_cls=model.Subscription)
 
-    View.add(app, base_url=[base_url + 'users/<string:parent>/messages', base_url + 'messages'], endpoint='messages', model_cls=Message, schema_cls=MessageSchema, parent_cls=User)
+    View.add(app, base_url=[base_url + 'users/<string:parent>/messages', base_url + 'messages'], endpoint='messages', model_cls=model.Message, schema_cls=model.MessageSchema, parent_cls=model.User)
 
 if __name__ == '__main__':
     prepare_routes()
