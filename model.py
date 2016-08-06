@@ -213,6 +213,67 @@ class MessageSchema(BaseSchema):
     subject = fields.Str(required=True)
     body = fields.Str(required=True)
 
+class TestGroup(unittest.TestCase):
+    def setUp(self):
+        self.db = SqliteDatabase('test.db')
+        self.db.connect()
+
+        Group.delete().execute()
+
+        admin = Group.create(name='test')
+        user = Group.create(name='user')
+        guest = Group.create(name='guest')
+
+    def tearDown(self):
+        self.db.close()
+        self.db = None
+
+    def test_get_all(self):
+        os = Group.select()
+        self.assertEqual(len(os), 3)
+
+    def test_get_one(self):
+        o0 = Group.select().where(Group.name == 'test').get()
+        self.assertTrue(o0)
+        self.assertEqual(o0.name, 'test')
+
+        o1 = Group.select().where(Group.id == o0.id).get()
+        self.assertTrue(o1)
+        self.assertEqual(o0, o1)
+
+class TestUser(unittest.TestCase):
+    def setUp(self):
+        self.db = SqliteDatabase('test.db')
+        self.db.connect()
+
+        User.delete().execute()
+        Device.delete().execute()
+
+        self.fake0 = User.create_user(name='fake0', username='fake0', password='fake0')
+        self.fake0.create_device(name='d10', resource='work', type='computer', dev_id='a')
+
+        self.user = User.create_user(name='Chloe', username='chloe', password='password')
+        self.user.create_device(name='d2', resource='work', type='computer', dev_id='a', reg_id='r2')
+        self.user.create_device(name='d0', resource='home', type='phone', dev_id='b', reg_id='r0')
+        self.user.create_device(name='d3', resource='home', type='laptop', dev_id='c', reg_id='r3')
+        self.user.create_device(name='d1', resource='work', type='phone', dev_id='d', reg_id='r1')
+
+        self.fake1 = User.create_user(name='fake1', username='fake1', password='fake1')
+        self.fake1.create_device(name='d20', resource='work', type='computer', dev_id='a')
+
+    def tearDown(self):
+        self.db.close()
+        self.db = None
+
+    def test_get_reg_ids_by_user_id(self):
+        user_id = self.user.id
+
+        devices = Device.select(Device, User).join(User).where(User.id == user_id)
+        self.assertEqual(len(devices), 4)
+
+        reg_ids = [d.reg_id for d in devices]
+        self.assertEqual(reg_ids, ['r2', 'r0', 'r3', 'r1'])
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(module)s.%(funcName)s#%(lineno)d %(message)s')
     unittest.main()
