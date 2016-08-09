@@ -1,6 +1,7 @@
 #!venv/bin/python
 import logging
 
+from flask import abort
 from flask import request
 from flask.views import MethodView
 
