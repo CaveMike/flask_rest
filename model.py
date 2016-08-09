@@ -95,14 +95,14 @@ class User(BaseModel):
         return UserToGroup.add_user_to_group(group=group, user=self)
 
     def __str__(self):
-        return 'name={}, description={}, email={}, username={}, password={}'.format(self.name, self.description, self.email, self.username, self.password)
+        return 'name={}, description={}, email={}, username={}, password={}'.format(self.name, self.description, self.email, self.username, '*' * len(self.password))
 
 class UserSchema(BaseSchema):
     name = fields.Str(required=True)
     description = fields.Str(required=True)
     email = fields.Str(required=True)
     username = fields.Str(required=True)
-    password = fields.Str(required=True)
+    password = fields.Str(required=True, load_only=True)
 
 class Group(BaseModel):
     name = CharField()
