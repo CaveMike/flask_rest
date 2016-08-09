@@ -20,23 +20,11 @@ from secrets import TEST_PASSWORD
 from secrets import TEST_CREDENTIALS
 
 class TestBase(unittest.TestCase):
-    MODELS = \
-    [
-        model.Config,
-        model.Group,
-        model.User,
-        model.UserToGroup,
-        model.Device,
-        model.Publication,
-        model.Subscription,
-        model.Message,
-    ]
-
     def populate_database(self):
         self.db = SqliteDatabase('peewee.db')
         self.db.connect()
 
-        for m in self.MODELS:
+        for m in model.ALL_MODELS:
             m.delete().execute()
 
         self.db.close()
@@ -44,13 +32,14 @@ class TestBase(unittest.TestCase):
         # Config
         release = model.Config.create(app_api_key=APP_API_KEY, messaging_api_key=MESSAGING_API_KEY)
 
+        admin_user = model.User.create_user(name='Administrator', description='Administrator', email='admin@localhost.com', username=TEST_USER, password=TEST_PASSWORD)
+
         # Groups
-        admin = model.Group.create(name=TEST_USER)
-        user = model.Group.create(name='user')
-        guest = model.Group.create(name='guest')
+        admin = model.Group.create(name=TEST_USER, owner=admin_user)
+        user = model.Group.create(name='user', owner=admin_user)
+        guest = model.Group.create(name='guest', owner=admin_user)
 
         # Users
-        admin = model.User.create_user(name='Administrator', description='Administrator', email='admin@localhost.com', username=TEST_USER, password=TEST_PASSWORD)
         model.Device.create(user=admin, name='d2', resource='work', type='computer', dev_id='a')
 
         chloe = model.User.create_user(name='Chloe', username='chloe', password=TEST_PASSWORD)
@@ -64,7 +53,7 @@ class TestBase(unittest.TestCase):
         sunshine.create_device(name='d5', resource='work', type='phone', dev_id='e')
         model.UserToGroup.create(user=sunshine, group=user)
         model.UserToGroup.create(user=sunshine, group=guest)
-        p = model.Publication.create(user=sunshine, topic='Life and Times of Sunshine', description='', group=guest)
+        p = model.Publication.create(user=sunshine, topic='Life and Times of Sunshine', description='', publish_group=guest, subscribe_group=guest)
         model.Message.create(user=sunshine, to_publication=p, subject='First post!')
         model.Message.create(user=sunshine, to_publication=p, subject='Eating breakfast')
         model.Message.create(user=sunshine, to_publication=p, subject='Time for a nap')

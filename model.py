@@ -69,17 +69,6 @@ class ConfigSchema(BaseSchema):
     app_api_key = fields.Str(required=True)
     messaging_api_key = fields.Str(required=True)
 
-class Group(BaseModel):
-    name = CharField()
-    description = CharField(default='')
-
-    def __str__(self):
-        return 'name={}'.format(self.name)
-
-class GroupSchema(BaseSchema):
-    name = fields.Str(required=True)
-    description = fields.Str(required=True)
-
 class User(BaseModel):
     name = CharField()
     description = CharField(default='')
@@ -102,6 +91,9 @@ class User(BaseModel):
     def create_device(self, **kwargs):
         return Device.create(user=self, **kwargs)
 
+    def add_group(self, group):
+        return UserToGroup.add_user_to_group(group=group, user=self)
+
     def __str__(self):
         return 'name={}, description={}, email={}, username={}, password={}'.format(self.name, self.description, self.email, self.username, self.password)
 
@@ -112,17 +104,27 @@ class UserSchema(BaseSchema):
     username = fields.Str(required=True)
     password = fields.Str(required=True)
 
-class UserToGroup(BaseModel):
-    """A simple "through" table for many-to-many relationship."""
+class Group(BaseModel):
+    name = CharField()
+    description = CharField(default='')
 
-    class Meta:
-        primary_key = CompositeKey('user', 'group')
+    owner = ForeignKeyField(User, related_name='owned_groups')
 
-    user = ForeignKeyField(User)
-    group = ForeignKeyField(Group)
+    def is_owner(self, user):
+        return self.owner == user
+
+    def is_member(self, user):
+        return UserToGroup.is_member(group=self, user=user)
+
+    def add_user(self, user):
+        return UserToGroup.add_user_to_group(group=self, user=user)
 
     def __str__(self):
-        return 'user={}, group={}'.format(self.user.name, self.group.name)
+        return 'name={}, description={}, owner_id={}, owner.name={}'.format(self.name, self.description, self.owner_id, self.owner.name)
+
+class GroupSchema(BaseSchema):
+    name = fields.Str(required=True)
+    description = fields.Str(required=True)
 
 class Device(BaseModel):
     name = CharField()
@@ -152,11 +154,21 @@ class Publication(BaseModel):
     description = CharField(default='')
 
     user = ForeignKeyField(User, related_name='publications')
-    group = ForeignKeyField(Group, related_name='publications')
+    publish_group = ForeignKeyField(Group, related_name='publications')
+    subscribe_group = ForeignKeyField(Group, related_name='subscriptions')
 
     @property
     def parent_id(self):
         return self.user.id
+
+    def is_owner(self, user):
+        return self.user == user
+
+    def can_publish(self, user):
+        return self.publish_group.is_member(user)
+
+    def can_subscribe(self, user):
+        return self.subscribe_group.is_member(user)
 
     def __str__(self):
         return 'topic={}, description={}, user={}'.format(self.topic, self.description, self.user.name)
@@ -213,66 +225,116 @@ class MessageSchema(BaseSchema):
     subject = fields.Str(required=True)
     body = fields.Str(required=True)
 
-class TestGroup(unittest.TestCase):
+
+class UserToGroup(BaseModel):
+    """A simple "through" table for many-to-many relationship."""
+
+    class Meta:
+        primary_key = CompositeKey('user', 'group')
+
+    user = ForeignKeyField(User)
+    group = ForeignKeyField(Group)
+
+    @classmethod
+    def add_user_to_group(cls, group, user):
+        if UserToGroup.is_member(group=group, user=user):
+            logging.error('User already member of group: group={}, user={}'.format(group, user))
+            return False
+
+        return UserToGroup.create(group=group, user=user)
+
+    @classmethod
+    def is_member(cls, group, user):
+        logging.debug('group={}, user={}'.format(group, user))
+        query = UserToGroup.select().where(UserToGroup.user == user, UserToGroup.group == group)
+        if len(query) == 0:
+            return False
+        elif len(query) == 1:
+            return True
+        else:
+            raise Exception('Invalid UserToGroup query length, query={}'.format(len(query)))
+
+    def __str__(self):
+        return 'user={}, group={}'.format(self.user.name, self.group.name)
+
+
+
+class TestModel(unittest.TestCase):
     def setUp(self):
-        self.db = SqliteDatabase('test.db')
+        self.db = SqliteDatabase('peewee.db')
         self.db.connect()
 
-        Group.delete().execute()
+        self.db.create_tables([Device, Group, User, UserToGroup, Publication], safe=True)
 
-        admin = Group.create(name='test')
-        user = Group.create(name='user')
-        guest = Group.create(name='guest')
+        Device.delete().execute()
+        Group.delete().execute()
+        User.delete().execute()
+        UserToGroup.delete().execute()
+        Publication.delete().execute()
+
+        self.user0 = User.create_user(name='user0name', username='user0username', password='user0password')
+        self.user0.create_device(name='device0name', resource='device0resource', type='device0type', dev_id='device0id', reg_id='device0regid')
+
+        self.user1 = User.create_user(name='user1name', username='user1username', password='user1password')
+        self.user1.create_device(name='device1name', resource='device1resource', type='device1type', dev_id='device1id')
+
+        self.group0 = Group.create(name='group0name', description='group0description', owner=self.user0)
+        self.group0.add_user(user=self.user0)
+        self.group0.add_user(user=self.user1)
+
+        self.group1 = Group.create(name='group1name', description='group1description', owner=self.user0)
+        self.group1.add_user(user=self.user0)
+
+        self.group2 = Group.create(name='group2name', description='group2description', owner=self.user1)
+        self.group2.add_user(user=self.user1)
+
+        self.pub0 = Publication.create(user=self.user0, topic='pub0topic', description='pub0description', publish_group=self.group1, subscribe_group=self.group0)
 
     def tearDown(self):
         self.db.close()
         self.db = None
 
-    def test_get_all(self):
+    def test_group_get(self):
         os = Group.select()
         self.assertEqual(len(os), 3)
 
-    def test_get_one(self):
-        o0 = Group.select().where(Group.name == 'test').get()
-        self.assertTrue(o0)
-        self.assertEqual(o0.name, 'test')
+        o = Group.select().where(Group.name == 'group0name').get()
+        self.assertEqual(o, self.group0)
 
-        o1 = Group.select().where(Group.id == o0.id).get()
-        self.assertTrue(o1)
-        self.assertEqual(o0, o1)
+        o = Group.select().where(Group.id == self.group0.id).get()
+        self.assertEqual(o, self.group0)
+        self.assertTrue(o.owner_id)
 
-class TestUser(unittest.TestCase):
-    def setUp(self):
-        self.db = SqliteDatabase('test.db')
-        self.db.connect()
+    def test_group_memberships(self):
+        self.assertTrue(self.group0.is_member(self.user0))
+        self.assertTrue(self.group0.is_member(self.user1))
 
-        User.delete().execute()
-        Device.delete().execute()
+        self.assertTrue(self.group1.is_member(self.user0))
+        self.assertFalse(self.group1.is_member(self.user1))
 
-        self.fake0 = User.create_user(name='fake0', username='fake0', password='fake0')
-        self.fake0.create_device(name='d10', resource='work', type='computer', dev_id='a')
-
-        self.user = User.create_user(name='Chloe', username='chloe', password='password')
-        self.user.create_device(name='d2', resource='work', type='computer', dev_id='a', reg_id='r2')
-        self.user.create_device(name='d0', resource='home', type='phone', dev_id='b', reg_id='r0')
-        self.user.create_device(name='d3', resource='home', type='laptop', dev_id='c', reg_id='r3')
-        self.user.create_device(name='d1', resource='work', type='phone', dev_id='d', reg_id='r1')
-
-        self.fake1 = User.create_user(name='fake1', username='fake1', password='fake1')
-        self.fake1.create_device(name='d20', resource='work', type='computer', dev_id='a')
-
-    def tearDown(self):
-        self.db.close()
-        self.db = None
+        self.assertFalse(self.group2.is_member(self.user0))
+        self.assertTrue(self.group2.is_member(self.user1))
 
     def test_get_reg_ids_by_user_id(self):
-        user_id = self.user.id
+        user_id = self.user0.id
 
         devices = Device.select(Device, User).join(User).where(User.id == user_id)
-        self.assertEqual(len(devices), 4)
+        self.assertEqual(len(devices), 1)
 
         reg_ids = [d.reg_id for d in devices]
-        self.assertEqual(reg_ids, ['r2', 'r0', 'r3', 'r1'])
+        self.assertEqual(reg_ids, ['device0regid'])
+
+ALL_MODELS = \
+[
+    Config,
+    Device,
+    Group,
+    Message,
+    Publication,
+    Subscription,
+    User,
+    UserToGroup,
+]
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(module)s.%(funcName)s#%(lineno)d %(message)s')
