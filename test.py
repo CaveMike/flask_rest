@@ -24,6 +24,8 @@ class TestBase(unittest.TestCase):
         self.db = SqliteDatabase('peewee.db')
         self.db.connect()
 
+        self.db.create_tables(model.ALL_MODELS, safe=True)
+
         for m in model.ALL_MODELS:
             m.delete().execute()
 
