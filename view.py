@@ -10,29 +10,25 @@ from flask_httpauth import HTTPBasicAuth
 from seq_tools import to_sequence_or_set
 
 class View(MethodView):
-    def __init__(self, model_cls, schema_cls, parent_cls, **kwargs):
+    def __init__(self, adapter, schema_cls, **kwargs):
         super(View, self).__init__()
 
-        self.model_cls=model_cls
-        self.schema_cls=schema_cls
-        self.parent_cls=parent_cls
-
-        self.schema=schema_cls()
-        self.schema_many=schema_cls(many=True)
+        self.adapter = adapter
+        self.schema_cls = schema_cls
+        self.schema = schema_cls()
+        self.schema_many = schema_cls(many=True)
 
     def get(self, id, parent=None, **kwargs):
         logging.debug('id={}, parent={}, kwargs={}'.format(id, parent, kwargs))
 
         if id:
             try:
-                o = self.model_cls.select().where(self.model_cls.id == id).get()
+                o = self.adapter.read_one(id=id, **kwargs)
                 mresults = self.schema.dumps(o)
-            except DoesNotExist as e:
+            except:
                 abort(404)
         else:
-            query = self.model_cls.select()
-            if self.parent_cls and parent:
-                query = query.join(self.parent_cls).where(self.parent_cls.id == parent)
+            query = self.adapter.read_all(id=id, parent=parent, **kwargs)
 
             mresults = self.schema_many.dumps(query)
 
@@ -55,9 +51,9 @@ class View(MethodView):
         if errors:
             abort(400)
 
-        model = self.model_cls.create(**request.json)
+        o = self.adapter.create_one(**request.json)
 
-        mresults = self.schema.dumps(model)
+        mresults = self.schema.dumps(o)
         if mresults.errors:
             abort(404)
 
@@ -75,14 +71,9 @@ class View(MethodView):
             abort(400)
 
         try:
-            o = self.model_cls.select().where(self.model_cls.id == id).get()
+            o = self.adapter.update_one(id=id, **request.json)
         except:
             abort(404)
-
-        for (k, v) in request.json.items():
-            o.__setattr__(k, v)
-
-        o.save()
 
         mresults = self.schema.dumps(o)
         if mresults.errors:
@@ -101,24 +92,11 @@ class View(MethodView):
     def delete(self, id, parent=None, **kwargs):
         logging.debug('id={}, parent={}, kwargs={}'.format(id, parent, kwargs))
 
-        if id:
-            try:
-                o = self.model_cls.select().where(self.model_cls.id == id).get()
-
-                self.model_cls.delete_instance(o)
-
-                mresults = self.schema.dumps(o)
-            except DoesNotExist as e:
-                abort(404)
-        else:
-            query = self.model_cls.select()
-
-            os = []
-            for o in query:
-                self.model_cls.delete_instance(o)
-                os.append(o)
-
-            mresults = self.schema_many.dumps(os)
+        try:
+            o = self.adapter.delete_one(id=id)
+            mresults = self.schema.dumps(o)
+        except:
+            abort(404)
 
         if mresults.errors:
             abort(404)
@@ -126,9 +104,9 @@ class View(MethodView):
         return mresults.data, 200, {'Content-Type': 'application/json'}
 
     @classmethod
-    def add(cls, app, base_url, endpoint, model_cls, schema_cls, parent_cls=None):
+    def add(cls, app, base_url, endpoint, adapter, schema_cls):
         for endpoint in to_sequence_or_set(endpoint):
-            view_func = View.as_view(endpoint, model_cls=model_cls, schema_cls=schema_cls, parent_cls=parent_cls)
+            view_func = View.as_view(endpoint, adapter=adapter, schema_cls=schema_cls)
 
             for base_url in to_sequence_or_set(base_url):
                 methods = ('GET', 'POST', 'DELETE')

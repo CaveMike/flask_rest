@@ -6,15 +6,6 @@ import unittest
 
 from flask import url_for
 
-from marshmallow import fields
-#from marshmallow import pprint
-#from marshmallow import pre_load
-#from marshmallow import post_load
-#from marshmallow import pre_dump
-#from marshmallow import post_dump
-#from marshmallow import validate
-from marshmallow import Schema
-
 from pbkdf2 import crypt
 
 from peewee import CharField
@@ -50,24 +41,9 @@ class BaseModel(Model):
     def __str__(self):
         return 'id={}, uri={}, created={}, modified={}, revision={}'.format(self.id, self.uri, self.created, self.modified, self.revision)
 
-class BaseSchema(Schema):
-    class Meta:
-        ordered = True
-
-    id = fields.Int(dump_only=True)
-    created = fields.DateTime(dump_only=True)
-    modified = fields.DateTime(dump_only=True)
-    revision = fields.Int(dump_only=True)
-
-    uri = fields.Str(dump_only=True)
-
 class Config(BaseModel):
     app_api_key = CharField()
     messaging_api_key = CharField()
-
-class ConfigSchema(BaseSchema):
-    app_api_key = fields.Str(required=True)
-    messaging_api_key = fields.Str(required=True)
 
 class User(BaseModel):
     name = CharField()
@@ -97,13 +73,6 @@ class User(BaseModel):
     def __str__(self):
         return 'name={}, description={}, email={}, username={}, password={}'.format(self.name, self.description, self.email, self.username, '*' * len(self.password))
 
-class UserSchema(BaseSchema):
-    name = fields.Str(required=True)
-    description = fields.Str(required=True)
-    email = fields.Str(required=True)
-    username = fields.Str(required=True)
-    password = fields.Str(required=True, load_only=True)
-
 class Group(BaseModel):
     name = CharField()
     description = CharField(default='')
@@ -122,10 +91,6 @@ class Group(BaseModel):
     def __str__(self):
         return 'name={}, description={}, owner_id={}, owner.name={}'.format(self.name, self.description, self.owner_id, self.owner.name)
 
-class GroupSchema(BaseSchema):
-    name = fields.Str(required=True)
-    description = fields.Str(required=True)
-
 class Device(BaseModel):
     name = CharField()
     dev_id = CharField(default='')
@@ -141,13 +106,6 @@ class Device(BaseModel):
 
     def __str__(self):
         return 'name={}, dev_id={}, reg_id={}, resource={}, type={}, user={}'.format(self.name, self.dev_id, self.reg_id, self.resource, self.type, self.user.name)
-
-class DeviceSchema(BaseSchema):
-    name = fields.Str(required=True)
-    dev_id = fields.Str(required=True)
-    reg_id = fields.Str(required=True)
-    resource = fields.Str(required=True)
-    type = fields.Str(required=True)
 
 class Publication(BaseModel):
     topic = CharField()
@@ -173,10 +131,6 @@ class Publication(BaseModel):
     def __str__(self):
         return 'topic={}, description={}, user={}'.format(self.topic, self.description, self.user.name)
 
-class PublicationSchema(BaseSchema):
-    topic = fields.Str(required=True)
-    description = fields.Str(required=True)
-
 class Subscription(BaseModel):
     user = ForeignKeyField(User, related_name='subscriptions')
     publication = ForeignKeyField(Publication, related_name='subscriptions')
@@ -187,9 +141,6 @@ class Subscription(BaseModel):
 
     def __str__(self):
         return 'user={}, pub={}'.format(self.user.name, self.publication.topic)
-
-class SubscriptionSchema(BaseSchema):
-    pass
 
 class Message(BaseModel):
     class Meta:
@@ -220,10 +171,6 @@ class Message(BaseModel):
             a.append('to_publication={}'.format(self.to_publication.topic))
 
         return ', '.join(a)
-
-class MessageSchema(BaseSchema):
-    subject = fields.Str(required=True)
-    body = fields.Str(required=True)
 
 
 class UserToGroup(BaseModel):
@@ -256,7 +203,6 @@ class UserToGroup(BaseModel):
 
     def __str__(self):
         return 'user={}, group={}'.format(self.user.name, self.group.name)
-
 
 
 class TestModel(unittest.TestCase):

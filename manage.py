@@ -6,7 +6,7 @@ import unittest
 
 from peewee import SqliteDatabase
 
-import model
+from model import ALL_MODELS
 
 class TestManage(unittest.TestCase):
     def setUp(self):
@@ -17,7 +17,7 @@ class TestManage(unittest.TestCase):
         self.db.close()
 
     def testCreate(self):
-        self.db.create_tables(model.ALL_MODELS, safe=True)
+        self.db.create_tables(ALL_MODELS, safe=True)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(module)s.%(funcName)s#%(lineno)d %(message)s')
