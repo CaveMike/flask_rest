@@ -24,4 +24,4 @@ http ${PARAMS} PATCH http://localhost:5000/api/v1.0/users/7 description=a
 http ${PARAMS} PATCH http://localhost:5000/api/v1.0/users/6 name=lenny description='Lenny' email=lenny@localhost.com
 # DELETE
 http ${PARAMS} DELETE http://localhost:5000/api/v1.0/users/6
-http ${PARAMS} DELETE http://localhost:5000/api/v1.0/users/
+#http ${PARAMS} DELETE http://localhost:5000/api/v1.0/users/
