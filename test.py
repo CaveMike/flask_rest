@@ -41,6 +41,8 @@ class TestBase(unittest.TestCase):
         user = model.Group.create(name='user', owner=admin_user)
         guest = model.Group.create(name='guest', owner=admin_user)
 
+        admin.add_user(admin_user)
+
         # Users
         model.Device.create(user=admin, name='d2', resource='work', type='computer', dev_id='a')
 
