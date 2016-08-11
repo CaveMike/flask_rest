@@ -6,6 +6,9 @@ class Adapter:
         self.model_cls = model_cls
         self.parent_cls = parent_cls
 
+    def create_one(self, parent=None, **kwargs):
+        return self.model_cls.create(**kwargs)
+
     def read_all(self, parent, **kwargs):
         query = self.model_cls.select()
         if self.parent_cls and parent:
@@ -20,16 +23,12 @@ class Adapter:
             logging.exception('read_one failed')
             raise e
 
-    def create_one(self, parent=None, **kwargs):
-        return self.model_cls.create(**kwargs)
-
     def update_one(self, id, parent=None, **kwargs):
-        o = self.model_cls.select().where(self.model_cls.id == id).get()
-
-        for (k, v) in kwargs.items():
-            o.__setattr__(k, v)
-
-        o.save()
+        o = self.read_one(id=id, parent=parent, **kwargs)
+        if o:
+            for (k, v) in kwargs.items():
+                o.__setattr__(k, v)
+            o.save()
         return o
 
     def patch_one(self, id, parent=None, **kwargs):
