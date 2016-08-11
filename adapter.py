@@ -41,6 +41,9 @@ class Adapter:
             self.model_cls.delete_instance(o)
         return o
 
+    def __str__(self):
+        return 'model={}, parent={}'.format(self.model_cls, self.parent_cls)
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(module)s.%(funcName)s#%(lineno)d %(message)s')
     unittest.main()
