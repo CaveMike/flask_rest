@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Bohrium</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+<script src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.0.js"></script>
+<script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+<script src="http://ajax.aspnetcdn.com/ajax/knockout/knockout-2.2.1.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/knockout-validation/2.0.3/knockout.validation.js"></script>
+</head>
+<body>
+    <div class="navbar">
+        <div class="navbar-inner">
+            <a class="brand" href="#">Bohrium</a>
+        </div>
+    </div>
+
+
+    <div id="main" class="container">
+        <table class="table table-striped">
+            <tr><td style="width: 1px;"></td><td><b>Field</b></td><td><b>Value</b></td></tr>
+
+            <tr><td></td><td><b>Name</b></td><td>
+                <input data-bind="value: name, attr: {'disabled': !editing()}" type="text" id="xinput_name" placeholder="Name" style="width: 150px;">
+            </td></tr>
+
+            <tr><td></td><td><b>Description</b></td><td>
+                <input data-bind="value: description, attr: {'disabled': !editing()}" type="text" id="xinput_description" placeholder="Description" style="width: 150px;">
+            </td></tr>
+
+            <tr><td></td><td><b>Email</b></td><td>
+                <input data-bind="value: email, attr: {'disabled': !editing()}" type="text" id="xinput_email" placeholder="Email" style="width: 150px;">
+            </tr>
+
+            <tr><td></td><td><b>Username</b></td><td>
+                <input data-bind="value: username, attr: {'disabled': !editing()}" type="text" id="xinput_username" placeholder="Username" style="width: 150px;">
+            </td></tr>
+
+            <tr><td></td><td><b>ID</b></td><td><p data-bind="text: id"></p></td></tr>
+            <tr><td></td><td><b>URI</b></td><td><a data-bind="attr: {href: uri, title: uri}"><p data-bind="text: uri"></p></a></td></tr>
+            <tr><td></td><td><b>Created</b></td><td><p data-bind="text: created"></p></td></tr>
+            <tr><td></td><td><b>Modified</b></td><td><p data-bind="text: modified"></p></td></tr>
+            <tr><td></td><td><b>Revision</b></td><td><p data-bind="text: revision"></p></td></tr>
+        </table>
+
+        <button data-bind="click: edit, enable: !dirty()" class="btn">Edit</button>
+        <button data-bind="click: cancel, enable: editing()" class="btn">Cancel</button>
+        <button data-bind="click: save, enable: dirty()" class="btn">Save</button>
+        <button style="text-align:center;" data-bind="click: remove" class="btn">Delete</button>
+    </div>
+
+
+
+
+
+    <div id="login" class="modal hide fade" tabindex="=1" role="dialog" aria-labelledby="loginLabel" aria-hidden="true">
+        <div class="modal-header">
+            <h3 id="loginLabel">Sign In</h3>
+        </div>
+        <div class="modal-body">
+            <form class="form-horizontal">
+                <div class="control-group">
+                    <label class="control-label" for="input_username">Username</label>
+                    <div class="controls">
+                        <input data-bind="value: username" type="text" id="input_username" placeholder="Username">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label" for="inputPassword">Password</label>
+                    <div class="controls">
+                        <input data-bind="value: password" type="password" id="inputPassword" placeholder="Password">
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button data-bind="click: login" class="btn btn-primary" data-dismiss="modal" aria-hidden="true">Sign In</button>
+        </div>
+    </div>
+
+
+
+    <script type="text/javascript">
+        function UserViewModel() {
+            var self = this;
+//            self.username = "admin";
+//            self.password = "1234";
+
+            self.user_id = "2";
+            self.tasksURI = 'http://localhost:5000/api/v1.0/users/' + self.user_id;
+
+            self.tasks = ko.observableArray();
+
+            self.name = ko.observable();
+            self.description = ko.observable();
+            self.email = ko.observable();
+            self.username = ko.observable();
+            self.password = ko.observable();
+
+            self.id = ko.observable();
+            self.created = ko.observable();
+            self.modified = ko.observable();
+            self.revision = ko.observable();
+            self.uri = ko.observable();
+
+            self.editing = ko.observable(false);
+            self.dirty = ko.observable(false);
+
+            self.ajax = function(uri, method, data) {
+                var request = {
+                    url: uri,
+                    type: method,
+                    contentType: "application/json",
+                    accepts: "application/json",
+                    cache: false,
+                    dataType: 'json',
+                    data: JSON.stringify(data),
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader("Authorization", "Basic " + btoa(self.username + ":" + self.password));
+                    },
+                    error: function(jqXHR) {
+                        console.log("ajax error " + jqXHR.status);
+                    }
+                };
+                return $.ajax(request);
+            }
+
+            self.edit = function(user) {
+                user.editing(true);
+            }
+            self.cancel = function(user) {
+                user.editing(false);
+                user.dirty(false);
+            }
+            self.save = function(user) {
+                self.ajax(user.uri(), 'PATCH', {name: self.name(), description: self.description(), email: self.email(), username: self.username()}).done(function(data) {
+                    user.name(data.name);
+                    user.description(data.description);
+                    user.email(data.email);
+                    user.username(data.username);
+
+                    user.id(data.id);
+                    user.created(data.created);
+                    user.modified(data.modified);
+                    user.revision(data.revision);
+                    user.uri(data.uri);
+
+                    user.editing(false);
+                    user.dirty(false);
+                }).fail(function(jqXHR) {
+                    alert("Update for " + user.name() + " failed with status " + jqXHR.status);
+                });
+            }
+
+
+            self.remove = function(user) {
+                self.ajax(user.uri(), 'DELETE').done(function() {
+                    alert("Removed: " + user.name());
+                    // FIXME: redirect to main user page
+                }).fail(function(jqXHR) {
+                    alert("Delete of " + user.name() + " failed with status " + jqXHR.status);
+                });
+            }
+
+
+            self.beginLogin = function() {
+                $('#login').modal('show');
+            }
+            self.login = function(username, password) {
+//                 self.username = username;
+//                 self.password = password;
+                self.ajax(self.tasksURI, 'GET').done(function(data) {
+                        self.name(data.name);
+                        self.description(data.description);
+                        self.email(data.email);
+                        self.username(data.username);
+
+                        self.id(data.id);
+                        self.created(data.created);
+                        self.modified(data.modified);
+                        self.revision(data.revision);
+                        self.uri(data.uri);
+
+                        self.dirty(false);
+
+                        // FIXME: Use a better change detector.
+                        $("[id^=xinput_]").on("change keyup paste", function(){
+                            self.dirty(true);
+                        })
+
+                }).fail(function(jqXHR) {
+                    if (jqXHR.status == 403)
+                        setTimeout(self.beginLogin, 500);
+                });
+            }
+
+//            self.beginLogin();
+        }
+
+        function LoginViewModel() {
+            var self = this;
+            self.username = ko.observable();
+            self.password = ko.observable();
+
+            self.login = function() {
+                $('#login').modal('hide');
+                tasksViewModel.login(self.username(), self.password());
+            }
+        }
+
+        var tasksViewModel = new UserViewModel();
+        var loginViewModel = new LoginViewModel();
+        ko.applyBindings(tasksViewModel, $('#main')[0]);
+        ko.applyBindings(loginViewModel, $('#login')[0]);
+        tasksViewModel.login("admin", "1234");
+    </script>
+
+</body>
+</html>

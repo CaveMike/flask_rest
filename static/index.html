@@ -41,7 +41,7 @@
             </tr>
             <!-- /ko -->
         </table>
-        <button data-bind="click: beginAdd" class="btn">Add Task</button>
+        <button data-bind="click: beginAdd" class="btn">Add User</button>
     </div>
 
 
@@ -204,6 +204,7 @@
                     });
                 });
             }
+
             self.beginEdit = function(task) {
                 alert("Edit: " + task.name());
             }
@@ -243,11 +244,11 @@
             self.beginLogin();
         }
 
-        function AddTaskViewModel() {
+        function AddUserViewModel() {
             var self = this;
-            self.name = ko.observable();
-            self.description = ko.observable();
-            self.email = ko.observable();
+            self.name = ko.observable("test");
+            self.description = ko.observable("test description");
+            self.email = ko.observable("test@example.com");
             self.username = ko.observable();
             self.password = ko.observable();
 
@@ -304,11 +305,11 @@
         }
 
         var tasksViewModel = new TasksViewModel();
-        var addTaskViewModel = new AddTaskViewModel();
+        var addUserViewModel = new AddUserViewModel();
         var editTaskViewModel = new EditTaskViewModel();
         var loginViewModel = new LoginViewModel();
         ko.applyBindings(tasksViewModel, $('#main')[0]);
-        ko.applyBindings(addTaskViewModel, $('#add')[0]);
+        ko.applyBindings(addUserViewModel, $('#add')[0]);
         ko.applyBindings(editTaskViewModel, $('#edit')[0]);
         ko.applyBindings(loginViewModel, $('#login')[0]);
     </script>
