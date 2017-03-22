@@ -137,8 +137,9 @@ def index():
     return redirect('/index.html')
 
 def prepare_routes(base_url='/api/v1.0/'):
-    View.decorators = [auth.login_required]
+    View.decorators = [AuthExt.admin_or_parent, auth.login_required]
 
+    # Admin-only.
     View.add(app, base_url=[base_url + 'configs'], endpoint='configs', adapter=Adapter(model_cls=Config), schema_cls=ConfigSchema)
 
     View.add(app, base_url=[base_url + 'groups'], endpoint='groups', adapter=Adapter(model_cls=Group), schema_cls=GroupSchema)
