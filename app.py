@@ -153,8 +153,8 @@ def prepare_routes(base_url='/api/v1.0/'):
     View.add(app, base_url=base_url + 'users/<string:user_id>/publications/<string:parent>/subscriptions', endpoint='publication.subscriptions', adapter=Adapter(model_cls=Subscription, parent_cls=Publication), schema_cls=SubscriptionSchema)
     View.add(app, base_url=base_url + 'users/<string:user_id>/publications/<string:parent>/messages', endpoint='publication.messages', adapter=Adapter(model_cls=Message, parent_cls=Publication), schema_cls=MessageSchema)
 
-    View.add(app, base_url=[base_url + 'users/<string:parent>/susbscriptions', base_url + 'subscriptions'], endpoint='subscriptions', adapter=Adapter(model_cls=Subscription, parent_cls=User), schema_cls=SubscriptionSchema)
-    #View.add(app, base_url=base_url + 'users/<string:user_id>/susbscriptions/<string:parent>/messages', endpoint='subscription.messages', adapter=Adapter(model_cls=Message, parent_cls=Subscription), schema_cls=MessageSchema)
+    View.add(app, base_url=[base_url + 'users/<string:parent>/subscriptions', base_url + 'subscriptions'], endpoint='subscriptions', adapter=Adapter(model_cls=Subscription, parent_cls=User), schema_cls=SubscriptionSchema)
+    #View.add(app, base_url=base_url + 'users/<string:user_id>/subscriptions/<string:parent>/messages', endpoint='subscription.messages', adapter=Adapter(model_cls=Message, parent_cls=Subscription), schema_cls=MessageSchema)
 
     View.add(app, base_url=[base_url + 'users/<string:parent>/messages', base_url + 'messages'], endpoint='messages', adapter=Adapter(model_cls=Message, parent_cls=User), schema_cls=MessageSchema)
 
