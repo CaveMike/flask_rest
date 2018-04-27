@@ -13,6 +13,8 @@ from marshmallow import fields
 #from marshmallow import validate
 from marshmallow import Schema
 
+DEBUG = False
+
 class BaseSchema(Schema):
     class Meta:
         ordered = True
@@ -35,9 +37,19 @@ class UserSchema(BaseSchema):
     username = fields.Str(required=True)
     password = fields.Str(required=True, load_only=True)
 
+    if DEBUG:
+        password = fields.Str(required=True, load_only=False)
+    else:
+        password = fields.Str(required=True, load_only=True)
+
 class GroupSchema(BaseSchema):
     name = fields.Str(required=True)
     description = fields.Str(required=True)
+
+    owner_uri = fields.Str(required=False)
+
+    if DEBUG:
+        owner = fields.Str(required=True)
 
 class DeviceSchema(BaseSchema):
     name = fields.Str(required=True)
@@ -46,16 +58,42 @@ class DeviceSchema(BaseSchema):
     resource = fields.Str(required=True)
     type = fields.Str(required=True)
 
+    user_uri = fields.Str(required=False)
+
+    if DEBUG:
+        user = fields.Str(required=True)
+
 class PublicationSchema(BaseSchema):
     topic = fields.Str(required=True)
     description = fields.Str(required=True)
 
+    owner_uri = fields.Str(required=False)
+    publish_group_uri = fields.Str(required=False)
+    subscribe_group_uri = fields.Str(required=False)
+
+    if DEBUG:
+        publish_group = fields.Str(required=True)
+        subscribe_group = fields.Str(required=True)
+
 class SubscriptionSchema(BaseSchema):
-    pass
+    topic = fields.Str(required=False)
+    description = fields.Str(required=False)
+    owner_uri = fields.Str(required=False)
+    publication_uri = fields.Str(required=False)
+
+    if DEBUG:
+        user = fields.Str(required=True)
+        publication = fields.Str(required=True)
 
 class MessageSchema(BaseSchema):
     subject = fields.Str(required=True)
     body = fields.Str(required=True)
+
+    if DEBUG:
+        user = fields.Str(required=True)
+        to_user = fields.Str(required=True)
+        to_device = fields.Str(required=True)
+        to_publication = fields.Str(required=True)
 
 class TestSchema(unittest.TestCase):
     def setUp(self):

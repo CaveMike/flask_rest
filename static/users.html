@@ -16,39 +16,103 @@
         </div>
     </div>
 
-
     <div id="main" class="container">
         <table class="table table-striped">
-            <tr><td style="width: 1px;"></td><td><b>Field</b></td><td><b>Value</b></td></tr>
-
-            <tr><td></td><td><b>Name</b></td><td>
-                <input data-bind="value: name, attr: {'disabled': !editing()}" type="text" id="xinput_name" placeholder="Name" style="width: 150px;">
-            </td></tr>
-
-            <tr><td></td><td><b>Description</b></td><td>
-                <input data-bind="value: description, attr: {'disabled': !editing()}" type="text" id="xinput_description" placeholder="Description" style="width: 150px;">
-            </td></tr>
-
-            <tr><td></td><td><b>Email</b></td><td>
-                <input data-bind="value: email, attr: {'disabled': !editing()}" type="text" id="xinput_email" placeholder="Email" style="width: 150px;">
+            <tr>
+              <td style="width: 1px;"></td>
+              <td><b>Field</b></td>
+              <td><b>Value</b></td>
             </tr>
 
-            <tr><td></td><td><b>Username</b></td><td>
-                <input data-bind="value: username, attr: {'disabled': !editing()}" type="text" id="xinput_username" placeholder="Username" style="width: 150px;">
-            </td></tr>
+            <tr>
+              <td></td>
+              <td><b>Name</b></td>
+              <td><input data-bind="value: name, attr: {'disabled': !editing()}" type="text" id="xinput_name" placeholder="Name" style="width: 150px;"></td>
+            </tr>
 
-            <tr><td></td><td><b>ID</b></td><td><p data-bind="text: id"></p></td></tr>
-            <tr><td></td><td><b>URI</b></td><td><a data-bind="attr: {href: uri, title: uri}"><p data-bind="text: uri"></p></a></td></tr>
-            <tr><td></td><td><b>Created</b></td><td><p data-bind="text: created"></p></td></tr>
-            <tr><td></td><td><b>Modified</b></td><td><p data-bind="text: modified"></p></td></tr>
-            <tr><td></td><td><b>Revision</b></td><td><p data-bind="text: revision"></p></td></tr>
+            <tr>
+              <td></td>
+              <td><b>Description</b></td>
+              <td><input data-bind="value: description, attr: {'disabled': !editing()}" type="text" id="xinput_description" placeholder="Description" style="width: 150px;"></td>
+            </tr>
+
+            <tr>
+              <td></td>
+              <td><b>Email</b></td>
+              <td><input data-bind="value: email, attr: {'disabled': !editing()}" type="text" id="xinput_email" placeholder="Email" style="width: 150px;"></td>
+            </tr>
+
+            <tr>
+              <td></td>
+              <td><b>Username</b></td>
+              <td><input data-bind="value: username, attr: {'disabled': !editing()}" type="text" id="xinput_username" placeholder="Username" style="width: 150px;"></td>
+            </tr>
+
+            <tr>
+              <td></td>
+              <td><b>ID</b></td>
+              <td><p data-bind="text: id"></p></td>
+            </tr>
+
+            <tr>
+              <td></td>
+              <td><b>URI</b></td>
+              <td><a data-bind="attr: {href: uri, title: uri}"><p data-bind="text: uri"></p></a></td>
+            </tr>
+
+            <tr>
+              <td></td>
+              <td><b>Created</b></td>
+              <td><p data-bind="text: created"></p></td>
+            </tr>
+
+            <tr>
+              <td></td>
+              <td><b>Modified</b></td>
+              <td><p data-bind="text: modified"></p></td>
+            </tr>
+
+            <tr>
+              <td></td>
+              <td><b>Revision</b></td>
+              <td><p data-bind="text: revision"></p></td>
+            </tr>
         </table>
 
         <button data-bind="click: edit, enable: !dirty()" class="btn">Edit</button>
         <button data-bind="click: cancel, enable: editing()" class="btn">Cancel</button>
         <button data-bind="click: save, enable: dirty()" class="btn">Save</button>
         <button style="text-align:center;" data-bind="click: remove" class="btn">Delete</button>
+
+        <p></p>
+
+        <table class="table table-striped">
+            <tr><td style="width: 1px;"></td><td><b>Publications</b></td><td></td></tr>
+            <!-- ko foreach: publications -->
+            <tr>
+                <td></td>
+                <td><p><b data-bind="text: id"></b></p><p data-bind="text: uri"></p></td>
+                <td><p><b data-bind="text: topic"></b></p><p data-bind="text: description"></p></td>
+            </tr>
+            <!-- /ko -->
+        </table>
+
+        <table class="table table-striped">
+            <tr>
+              <td style="width: 1px;"></td>
+              <td><b>Subscriptions</b></td>
+              <td></td>
+            </tr>
+            <!-- ko foreach: subscriptions -->
+            <tr>
+                <td></td>
+                <td><p><b data-bind="text: id"></b></p><p data-bind="text: uri"></p></td>
+                <td><p><b data-bind="text: topic"></b></p><p data-bind="text: description"></p></td>
+            </tr>
+            <!-- /ko -->
+        </table>
     </div>
+
 
 
 
@@ -63,13 +127,13 @@
                 <div class="control-group">
                     <label class="control-label" for="input_username">Username</label>
                     <div class="controls">
-                        <input data-bind="value: username" type="text" id="input_username" placeholder="Username">
+                        <input data-bind="value: login_username" type="text" id="input_username" placeholder="Username">
                     </div>
                 </div>
                 <div class="control-group">
                     <label class="control-label" for="inputPassword">Password</label>
                     <div class="controls">
-                        <input data-bind="value: password" type="password" id="inputPassword" placeholder="Password">
+                        <input data-bind="value: login_password" type="password" id="inputPassword" placeholder="Password">
                     </div>
                 </div>
             </form>
@@ -84,13 +148,15 @@
     <script type="text/javascript">
         function UserViewModel() {
             var self = this;
-//            self.username = "admin";
-//            self.password = "1234";
 
-            self.user_id = "2";
-            self.tasksURI = 'http://localhost:5000/api/v1.0/users/' + self.user_id;
+            self.login_username;
+            self.login_password;
 
-            self.tasks = ko.observableArray();
+            self.user_id = "3";
+            self.users_uri = 'http://localhost:5000/api/v1.0/users/' + self.user_id;
+
+            self.subscriptions = ko.observableArray();
+            self.publications = ko.observableArray();
 
             self.name = ko.observable();
             self.description = ko.observable();
@@ -168,9 +234,10 @@
                 $('#login').modal('show');
             }
             self.login = function(username, password) {
-//                 self.username = username;
-//                 self.password = password;
-                self.ajax(self.tasksURI, 'GET').done(function(data) {
+                self.login_username = username;
+                self.login_password = password;
+
+                self.ajax(self.users_uri, 'GET').done(function(data) {
                         self.name(data.name);
                         self.description(data.description);
                         self.email(data.email);
@@ -191,29 +258,58 @@
 
                 }).fail(function(jqXHR) {
                     if (jqXHR.status == 403)
-                        setTimeout(self.beginLogin, 500);
+                      console.log("GET user ajax error " + jqXHR.status);
+                      //setTimeout(self.beginLogin, 500);
+                });
+
+                self.ajax('http://localhost:5000/api/v1.0/users/' + self.user_id + '/publications/', 'GET').done(function(data) {
+                  for (var i = 0; i < data.length; i++) {
+                      self.publications.push({
+                          uri: ko.observable(data[i].uri),
+                          id: ko.observable(data[i].id),
+                          topic: ko.observable(data[i].topic),
+                          description: ko.observable(data[i].description),
+                      });
+                  }
+                }).fail(function(jqXHR) {
+                    if (jqXHR.status == 403)
+                      console.log("GET publications ajax error " + jqXHR.status);
+                });
+
+                self.ajax('http://localhost:5000/api/v1.0/users/' + self.user_id + '/subscriptions/', 'GET').done(function(data) {
+                  for (var i = 0; i < data.length; i++) {
+                      self.subscriptions.push({
+                          uri: ko.observable(data[i].uri),
+                          id: ko.observable(data[i].id),
+                          topic: ko.observable(data[i].topic),
+                          description: ko.observable(data[i].description),
+                      });
+                  }
+                }).fail(function(jqXHR) {
+                    if (jqXHR.status == 403)
+                      console.log("GET subscriptions ajax error " + jqXHR.status);
                 });
             }
 
-//            self.beginLogin();
+           self.beginLogin();
         }
 
         function LoginViewModel() {
             var self = this;
-            self.username = ko.observable();
-            self.password = ko.observable();
+            self.login_username = ko.observable("admin");
+            self.login_password = ko.observable("1234");
 
             self.login = function() {
                 $('#login').modal('hide');
-                tasksViewModel.login(self.username(), self.password());
+                usersViewModel.login(self.login_username(), self.login_password());
             }
         }
 
-        var tasksViewModel = new UserViewModel();
+        var usersViewModel = new UserViewModel();
         var loginViewModel = new LoginViewModel();
-        ko.applyBindings(tasksViewModel, $('#main')[0]);
+        ko.applyBindings(usersViewModel, $('#main')[0]);
         ko.applyBindings(loginViewModel, $('#login')[0]);
-        tasksViewModel.login("admin", "1234");
+        // usersViewModel.login("admin", "1234");
     </script>
 
 </body>

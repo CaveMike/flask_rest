@@ -79,6 +79,10 @@ class Group(BaseModel):
 
     owner = ForeignKeyField(User, related_name='owned_groups')
 
+    @property
+    def owner_uri(self):
+        return self.owner.uri
+
     def is_owner(self, user):
         return self.owner == user
 
@@ -104,6 +108,10 @@ class Device(BaseModel):
     def parent_id(self):
         return self.user.id
 
+    @property
+    def user_uri(self):
+        return self.user.uri
+
     def __str__(self):
         return 'name={}, dev_id={}, reg_id={}, resource={}, type={}, user={}'.format(self.name, self.dev_id, self.reg_id, self.resource, self.type, self.user.name)
 
@@ -118,6 +126,18 @@ class Publication(BaseModel):
     @property
     def parent_id(self):
         return self.user.id
+
+    @property
+    def owner_uri(self):
+        return self.user.uri
+
+    @property
+    def publish_group_uri(self):
+        return self.publish_group.uri
+
+    @property
+    def subscribe_group_uri(self):
+        return self.publish_group.uri
 
     def is_owner(self, user):
         return self.user == user
@@ -138,6 +158,22 @@ class Subscription(BaseModel):
     @property
     def parent_id(self):
         return self.user.id
+
+    @property
+    def topic(self):
+        return self.publication.topic
+
+    @property
+    def description(self):
+        return self.publication.description
+
+    @property
+    def owner_uri(self):
+        return self.publication.user.uri
+
+    @property
+    def publication_uri(self):
+        return self.publication.uri
 
     def __str__(self):
         return 'user={}, pub={}'.format(self.user.name, self.publication.topic)
